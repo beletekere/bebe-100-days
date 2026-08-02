@@ -8,7 +8,6 @@ let currentMedia = []; // media rows for today, loaded from IndexedDB
 let draftChecklist = {};
 let draftRunning = { location: '', distanceKm: '' };
 let draftMood = null;
-let draftNote = '';
 
 function el(sel, root = document) {
   return root.querySelector(sel);
@@ -40,7 +39,6 @@ function loadTodayDraftFromEntry() {
   draftChecklist = { ...entry.checklist };
   draftRunning = entry.running ? { ...entry.running } : { location: '', distanceKm: '' };
   draftMood = entry.mood;
-  draftNote = entry.note || '';
 }
 
 async function renderToday() {
@@ -90,8 +88,6 @@ async function renderToday() {
     moodWrap.appendChild(opt);
   });
 
-  el('#noteInput').value = draftNote;
-
   // media thumbs
   currentMedia = await getMediaForDate(todayKey);
   renderThumbs();
@@ -123,8 +119,6 @@ function renderThumbs() {
 }
 
 function setupTodayHandlers() {
-  el('#noteInput').addEventListener('input', (e) => (draftNote = e.target.value));
-
   el('#photoInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -155,7 +149,6 @@ function setupTodayHandlers() {
       checklist: draftChecklist,
       running,
       mood: draftMood,
-      note: draftNote,
     });
     el('#saveFlash').textContent = 'נשמר! 💪';
     renderBanners();
@@ -249,14 +242,6 @@ function renderWeeklyCompare(dayNum, settings, entries) {
   `;
 }
 
-function findNoteEntries(entries) {
-  const dated = Object.values(entries)
-    .filter((e) => e.note && e.note.trim())
-    .sort((a, b) => a.date.localeCompare(b.date));
-  if (dated.length < 2) return null;
-  return { first: dated[0], last: dated[dated.length - 1] };
-}
-
 async function renderBeforeAfterMedia() {
   const container = el('#beforeAfter');
   const allMedia = await getAllMedia();
@@ -295,20 +280,6 @@ function renderBeforeAfter(dayNum, settings, entries) {
   const afterStart = Math.max(8, dayNum - 6);
   const after = computeRangeStats(afterStart, dayNum, settings, entries, dayNum);
 
-  const noteEntries = findNoteEntries(entries);
-  const notesHtml = noteEntries
-    ? `<div class="ba-media-row">
-        <div class="ba-media-col">
-          <div class="ba-label">${noteEntries.first.date}</div>
-          <div class="ba-note">"${escapeHtml(noteEntries.first.note)}"</div>
-        </div>
-        <div class="ba-media-col">
-          <div class="ba-label">${noteEntries.last.date}</div>
-          <div class="ba-note">"${escapeHtml(noteEntries.last.note)}"</div>
-        </div>
-      </div>`
-    : '';
-
   container.innerHTML = `
     <div class="compare-grid">
       <div class="compare-col">
@@ -321,7 +292,6 @@ function renderBeforeAfter(dayNum, settings, entries) {
       </div>
     </div>
     ${diffLineHtml(before, after)}
-    ${notesHtml}
   `;
 
   renderBeforeAfterMedia();
@@ -482,32 +452,14 @@ async function renderHistory() {
       <div class="date">${key}</div>
       <div class="chips">${chips}</div>
       ${entry.mood ? `<div>${MOODS[entry.mood - 1]}</div>` : ''}
-      ${entry.note ? `<div class="note">${escapeHtml(entry.note)}</div>` : ''}
       ${thumbsHtml ? `<div class="thumbs">${thumbsHtml}</div>` : ''}
     `;
     list.appendChild(div);
   }
 }
 
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-// ---------------- Why ----------------
-const DEFAULT_WHY = `אני עושה את זה כדי:
-- לסדר את הראש ולשפר את המצב המנטלי שלי
-- לשפר את הכושר הגופני שלי
-- לנצל את הזמן שלי בצורה נכונה יותר
-- להפסיק לגמרי עם אלכוהול ועישון
-- לישון יותר טוב ולצמצם את הזמן מול הפלאפון`;
-
+// ---------------- Settings (sync + backup) ----------------
 function renderWhy() {
-  const settings = loadSettings();
-  if (!settings.whyText) settings.whyText = DEFAULT_WHY;
-  el('#whyInput').value = settings.whyText;
-
   const syncDot = el('#syncDot');
   const enabled = window.Cloud && window.Cloud.isEnabled();
   syncDot.classList.toggle('on', !!enabled);
@@ -522,12 +474,6 @@ function renderWhy() {
 }
 
 function setupWhyHandlers() {
-  el('#whyInput').addEventListener('input', (e) => {
-    const settings = loadSettings();
-    settings.whyText = e.target.value;
-    saveSettings(settings);
-  });
-
   el('#generateBoxBtn').addEventListener('click', () => {
     if (!window.Cloud) return;
     const id = window.Cloud.generateBoxId();
@@ -597,21 +543,6 @@ function renderBanners() {
   const doneCount = habitsToday.filter((h) => entry.checklist && entry.checklist[h.id]).length;
   if (today.getHours() >= 20 && doneCount < habitsToday.length) {
     messages.push({ cls: '', text: 'עדיין לא סימנת את כל היום - כמה דקות ותוכל לסגור אותו לפני השינה 💪' });
-  }
-
-  const entries = loadEntries();
-  const noteDates = Object.values(entries)
-    .filter((e) => e.note && e.note.trim())
-    .map((e) => e.date)
-    .sort();
-  if (noteDates.length) {
-    const lastNoteDate = new Date(noteDates[noteDates.length - 1] + 'T00:00:00');
-    const gapDays = Math.floor((today - lastNoteDate) / 86400000);
-    if (gapDays >= 2) {
-      messages.push({ cls: 'info', text: `לא כתבת ביומן כבר ${gapDays} ימים - אפילו שורה אחת עוזרת להסתכל אחורה בהמשך` });
-    }
-  } else if (dayNum >= 2) {
-    messages.push({ cls: 'info', text: 'עוד לא כתבת שום דבר ביומן - נסה להוסיף כמה מילים היום' });
   }
 
   area.innerHTML = messages.map((m) => `<div class="banner${m.cls ? ' ' + m.cls : ''}">${m.text}</div>`).join('');

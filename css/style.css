@@ -572,12 +572,6 @@ canvas#moodChart {
   background: #000;
 }
 
-.ba-note {
-  font-size: 0.85rem;
-  font-style: italic;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
 
 .empty-note {
   font-size: 0.85rem;
@@ -613,17 +607,7 @@ canvas#moodChart {
   padding: 2px 6px;
 }
 
-.history-item .note {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-/* ---------- Why screen ---------- */
-.why-text {
-  white-space: pre-wrap;
-  line-height: 1.5;
-}
-
+/* ---------- Settings screen ---------- */
 .box-id-box {
   font-family: monospace;
   word-break: break-all;

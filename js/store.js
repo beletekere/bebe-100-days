@@ -1,4 +1,4 @@
-// שכבת נתונים מקומית (טקסט בלבד: צ'קליסט, יומן, ריצה). תמיד עובד גם בלי ענן.
+// שכבת נתונים מקומית (טקסט בלבד: צ'קליסט, ריצה, מצב רוח). תמיד עובד גם בלי ענן.
 const ENTRIES_KEY = 'bebe100_entries';
 const SETTINGS_KEY = 'bebe100_settings';
 const DEFAULT_START_DATE = '2026-08-02';
@@ -31,7 +31,6 @@ function getEntry(date) {
       checklist: {},
       running: null,
       mood: null,
-      note: '',
       updatedAt: 0,
     }
   );
@@ -62,9 +61,9 @@ function mergeCloudEntry(remote) {
 
 function loadSettings() {
   try {
-    return { startDate: DEFAULT_START_DATE, whyText: '', ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
+    return { startDate: DEFAULT_START_DATE, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
   } catch {
-    return { startDate: DEFAULT_START_DATE, whyText: '' };
+    return { startDate: DEFAULT_START_DATE };
   }
 }
 
