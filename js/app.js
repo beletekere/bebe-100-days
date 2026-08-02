@@ -602,9 +602,15 @@ function setupCloud() {
   }
 }
 
-function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+// הוסר שירות ה-Service Worker לגמרי - גרם לתקיעות על גרסאות ישנות ואף לכשל בטעינה.
+// הפונקציה כאן מנטרלת כל רישום קודם שנשאר על מכשירים שכבר התקינו אותו.
+function disableServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => reg.unregister());
+  });
+  if (window.caches) {
+    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
   }
 }
 
@@ -621,5 +627,5 @@ window.addEventListener('DOMContentLoaded', () => {
   setupWhyHandlers();
   renderBanners();
   setupCloud();
-  registerServiceWorker();
+  disableServiceWorker();
 });
