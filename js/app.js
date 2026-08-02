@@ -103,7 +103,7 @@ function renderThumbs() {
     div.className = 'thumb';
     const url = URL.createObjectURL(m.blob);
     div.innerHTML =
-      m.type === 'photo' ? `<img src="${url}">` : `<video src="${url}" muted></video>`;
+      m.type === 'photo' ? `<img class="viewable-media" src="${url}">` : `<video class="viewable-media" src="${url}" muted></video>`;
     const del = document.createElement('button');
     del.className = 'del';
     del.textContent = '✕';
@@ -260,11 +260,11 @@ async function renderBeforeAfterMedia() {
     `<div class="ba-media-row">
       <div class="ba-media-col">
         <div class="ba-label">${first.date}</div>
-        ${first.type === 'photo' ? `<img src="${firstUrl}">` : `<video src="${firstUrl}" muted></video>`}
+        ${first.type === 'photo' ? `<img class="viewable-media" src="${firstUrl}">` : `<video class="viewable-media" src="${firstUrl}" muted></video>`}
       </div>
       <div class="ba-media-col">
         <div class="ba-label">${last.date}</div>
-        ${last.type === 'photo' ? `<img src="${lastUrl}">` : `<video src="${lastUrl}" muted></video>`}
+        ${last.type === 'photo' ? `<img class="viewable-media" src="${lastUrl}">` : `<video class="viewable-media" src="${lastUrl}" muted></video>`}
       </div>
     </div>`
   );
@@ -411,7 +411,7 @@ async function renderGallery(dayNum, settings, entries) {
     cell.title = d.key;
     if (media.length) {
       const url = URL.createObjectURL(media[0].blob);
-      cell.innerHTML = media[0].type === 'photo' ? `<img src="${url}">` : `<video src="${url}" muted></video>`;
+      cell.innerHTML = media[0].type === 'photo' ? `<img class="viewable-media" src="${url}">` : `<video class="viewable-media" src="${url}" muted></video>`;
     } else {
       cell.innerHTML = `<span class="gallery-day-num">${d.day}</span>`;
     }
@@ -475,7 +475,7 @@ async function renderHistory() {
     const thumbsHtml = media
       .map((m) => {
         const url = URL.createObjectURL(m.blob);
-        return m.type === 'photo' ? `<img src="${url}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;margin-left:4px">` : `<video src="${url}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;margin-left:4px" muted></video>`;
+        return m.type === 'photo' ? `<img class="viewable-media" src="${url}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;margin-left:4px">` : `<video class="viewable-media" src="${url}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;margin-left:4px" muted></video>`;
       })
       .join('');
     div.innerHTML = `
@@ -602,6 +602,31 @@ function setupCloud() {
   }
 }
 
+// ---------------- Lightbox (הצגת תמונה/סרטון בגודל מלא) ----------------
+function openLightbox(src, tagName) {
+  el('#lightboxContent').innerHTML =
+    tagName === 'video' ? `<video src="${src}" controls autoplay></video>` : `<img src="${src}">`;
+  el('#lightbox').classList.remove('hidden');
+}
+
+function closeLightbox() {
+  el('#lightbox').classList.add('hidden');
+  el('#lightboxContent').innerHTML = '';
+}
+
+function setupLightbox() {
+  document.addEventListener('click', (e) => {
+    const media = e.target.closest('.viewable-media');
+    if (media) {
+      openLightbox(media.currentSrc || media.src, media.tagName.toLowerCase());
+    }
+  });
+  el('#lightboxClose').addEventListener('click', closeLightbox);
+  el('#lightbox').addEventListener('click', (e) => {
+    if (e.target.id === 'lightbox') closeLightbox();
+  });
+}
+
 // הוסר שירות ה-Service Worker לגמרי - גרם לתקיעות על גרסאות ישנות ואף לכשל בטעינה.
 // הפונקציה כאן מנטרלת כל רישום קודם שנשאר על מכשירים שכבר התקינו אותו.
 function disableServiceWorker() {
@@ -625,6 +650,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderToday();
   setupTodayHandlers();
   setupWhyHandlers();
+  setupLightbox();
   renderBanners();
   setupCloud();
   disableServiceWorker();
