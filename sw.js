@@ -1,4 +1,4 @@
-const CACHE = 'bebe100-v3';
+const CACHE = 'bebe100-v4';
 const SHELL = [
   './',
   './index.html',
@@ -32,7 +32,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin.includes('gstatic.com') || url.origin.includes('firestore.googleapis.com')) return; // אל תשמור בקאש קריאות ענן
+  // תמיד לנסות רשת קודם, כדי שעדכונים חדשים יגיעו מיד כשיש אינטרנט - הקאש הוא רק גיבוי לאופליין
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request).catch(() => cached))
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
