@@ -1,4 +1,4 @@
-const CACHE = 'bebe100-v2';
+const CACHE = 'bebe100-v3';
 const SHELL = [
   './',
   './index.html',
@@ -12,6 +12,9 @@ const SHELL = [
   './js/firebase-config.js',
   './js/app.js',
   './icons/icon.svg',
+  './icons/icon-180.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
