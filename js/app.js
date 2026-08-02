@@ -369,6 +369,38 @@ function setupWhyHandlers() {
       location.reload();
     }
   });
+
+  el('#exportBackupBtn').addEventListener('click', async () => {
+    const status = el('#backupStatus');
+    status.textContent = 'מייצא...';
+    try {
+      const { entriesCount, mediaCount } = await Backup.exportBackup();
+      status.textContent = `הורד קובץ גיבוי (${entriesCount} ימים, ${mediaCount} קבצי מדיה) 💾`;
+    } catch (e) {
+      console.error(e);
+      status.textContent = 'שגיאה בייצוא הגיבוי';
+    }
+  });
+
+  el('#importBackupBtn').addEventListener('click', () => el('#importBackupInput').click());
+
+  el('#importBackupInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const status = el('#backupStatus');
+    status.textContent = 'מייבא...';
+    try {
+      const { entriesCount, mediaCount } = await Backup.importBackup(file);
+      status.textContent = `שוחזרו ${entriesCount} ימים ו-${mediaCount} קבצי מדיה ✅`;
+      loadTodayDraftFromEntry();
+      renderHeader();
+      renderToday();
+    } catch (err) {
+      console.error(err);
+      status.textContent = 'קובץ גיבוי לא תקין';
+    }
+    e.target.value = '';
+  });
 }
 
 // ---------------- Reminder banner ----------------

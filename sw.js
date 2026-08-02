@@ -1,4 +1,4 @@
-const CACHE = 'bebe100-v1';
+const CACHE = 'bebe100-v2';
 const SHELL = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const SHELL = [
   './js/quotes.js',
   './js/db.js',
   './js/store.js',
+  './js/backup.js',
   './js/firebase-config.js',
   './js/app.js',
   './icons/icon.svg',
