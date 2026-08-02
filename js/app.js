@@ -1,5 +1,6 @@
 const DAYS_HE = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 const MOODS = ['😞', '😕', '😐', '🙂', '💪'];
+const MILESTONES = [10, 30, 50, 100];
 
 let today = new Date();
 let todayKey = dateKey(today);
@@ -21,12 +22,17 @@ function switchView(view) {
   if (view === 'why') renderWhy();
 }
 
+function currentDayNumber() {
+  const settings = loadSettings();
+  return Math.max(1, Math.min(100, dayNumberFor(today, settings.startDate)));
+}
+
 function renderHeader() {
   const settings = loadSettings();
   const dayNum = dayNumberFor(today, settings.startDate);
-  const clamped = Math.max(1, Math.min(100, dayNum));
+  const clamped = currentDayNumber();
   el('#dayBadge').textContent = dayNum > 100 ? `סיימת את ה-100 ימים! 🎉` : dayNum < 1 ? `האתגר יתחיל בקרוב` : `יום ${clamped} מתוך 100`;
-  el('#quoteCard').textContent = '"' + quoteForDay(Math.max(1, clamped)) + '"';
+  el('#quoteCard').textContent = '"' + quoteForDay(clamped) + '"';
 }
 
 function loadTodayDraftFromEntry() {
@@ -152,14 +158,180 @@ function setupTodayHandlers() {
       note: draftNote,
     });
     el('#saveFlash').textContent = 'נשמר! 💪';
+    renderBanners();
   });
 }
 
-// ---------------- Progress ----------------
+// ריצה לא נדרשת בכל יום (יעד "יום כן יום לא", לא ימים קבועים) - לא נכנסת לחישוב "יום מושלם"
+function isDayFull(date, entry) {
+  const applicable = habitsForDate(date).filter((h) => h.id !== 'running');
+  const doneCount = entry ? applicable.filter((h) => entry.checklist && entry.checklist[h.id]).length : 0;
+  return applicable.length > 0 && doneCount === applicable.length;
+}
+
+// סטטיסטיקות על טווח ימי-אתגר (1-100), לצורך השוואות שבועיות ולפני/אחרי
+function computeRangeStats(startDay, endDay, settings, entries, todayDayNum) {
+  const start = new Date(settings.startDate + 'T00:00:00');
+  const clampedStart = Math.max(1, startDay);
+  const clampedEnd = Math.min(endDay, todayDayNum, 100);
+  let fullDays = 0;
+  let runs = 0;
+  let moodSum = 0;
+  let moodCount = 0;
+  let countedDays = 0;
+
+  for (let day = clampedStart; day <= clampedEnd; day++) {
+    const d = new Date(start.getTime() + (day - 1) * 86400000);
+    const entry = entries[dateKey(d)];
+    if (isDayFull(d, entry)) fullDays++;
+    if (entry && entry.checklist && entry.checklist.running) runs++;
+    if (entry && entry.mood) {
+      moodSum += entry.mood;
+      moodCount++;
+    }
+    countedDays++;
+  }
+
+  return { fullDays, runs, moodAvg: moodCount ? moodSum / moodCount : null, countedDays };
+}
+
+function compareMetricsHtml(stats) {
+  return `
+    <div class="compare-metric"><span>ימים מושלמים</span><span>${stats.fullDays}</span></div>
+    <div class="compare-metric"><span>ריצות</span><span>${stats.runs}</span></div>
+    <div class="compare-metric"><span>מצב רוח ממוצע</span><span>${stats.moodAvg ? stats.moodAvg.toFixed(1) : '—'}</span></div>
+  `;
+}
+
+function diffLineHtml(before, after) {
+  const diff = after.fullDays - before.fullDays;
+  if (diff > 0) return `<div class="diff-line diff-up">📈 ${diff} ימים מושלמים יותר</div>`;
+  if (diff < 0) return `<div class="diff-line diff-down">📉 ${Math.abs(diff)} ימים מושלמים פחות</div>`;
+  return `<div class="diff-line diff-same">➡️ אותה רמת עקביות</div>`;
+}
+
+function renderMilestones(dayNum) {
+  const row = el('#milestoneRow');
+  row.innerHTML = '';
+  MILESTONES.forEach((m) => {
+    const reached = dayNum >= m;
+    const div = document.createElement('div');
+    div.className = 'milestone' + (reached ? ' reached' : '') + (dayNum === m ? ' today' : '');
+    div.innerHTML = `<div class="num">${m}</div><div class="lbl">${reached ? '✓ הושלם' : `בעוד ${m - dayNum}`}</div>`;
+    row.appendChild(div);
+  });
+}
+
+function renderWeeklyCompare(dayNum, settings, entries) {
+  const container = el('#weeklyCompare');
+  const currentWeekIndex = Math.ceil(dayNum / 7);
+  if (currentWeekIndex <= 1) {
+    container.innerHTML = '<div class="empty-note">עוד אין שבוע קודם להשוואה - תחזור לכאן אחרי השבוע הראשון</div>';
+    return;
+  }
+  const curStart = (currentWeekIndex - 1) * 7 + 1;
+  const curEnd = currentWeekIndex * 7;
+  const cur = computeRangeStats(curStart, curEnd, settings, entries, dayNum);
+  const prev = computeRangeStats(curStart - 7, curEnd - 7, settings, entries, dayNum);
+
+  container.innerHTML = `
+    <div class="compare-grid">
+      <div class="compare-col">
+        <div class="compare-title">שבוע קודם</div>
+        ${compareMetricsHtml(prev)}
+      </div>
+      <div class="compare-col">
+        <div class="compare-title">השבוע הזה</div>
+        ${compareMetricsHtml(cur)}
+      </div>
+    </div>
+    ${diffLineHtml(prev, cur)}
+  `;
+}
+
+function findNoteEntries(entries) {
+  const dated = Object.values(entries)
+    .filter((e) => e.note && e.note.trim())
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (dated.length < 2) return null;
+  return { first: dated[0], last: dated[dated.length - 1] };
+}
+
+async function renderBeforeAfterMedia() {
+  const container = el('#beforeAfter');
+  const allMedia = await getAllMedia();
+  if (allMedia.length < 2) return;
+  const sorted = allMedia.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  if (first.date === last.date) return;
+
+  const firstUrl = URL.createObjectURL(first.blob);
+  const lastUrl = URL.createObjectURL(last.blob);
+  container.insertAdjacentHTML(
+    'beforeend',
+    `<div class="ba-media-row">
+      <div class="ba-media-col">
+        <div class="ba-label">${first.date}</div>
+        ${first.type === 'photo' ? `<img src="${firstUrl}">` : `<video src="${firstUrl}" muted></video>`}
+      </div>
+      <div class="ba-media-col">
+        <div class="ba-label">${last.date}</div>
+        ${last.type === 'photo' ? `<img src="${lastUrl}">` : `<video src="${lastUrl}" muted></video>`}
+      </div>
+    </div>`
+  );
+}
+
+function renderBeforeAfter(dayNum, settings, entries) {
+  const container = el('#beforeAfter');
+
+  if (dayNum <= 7) {
+    container.innerHTML = '<div class="empty-note">עוד מוקדם - ההשוואה תופיע אחרי השבוע הראשון של האתגר</div>';
+    return;
+  }
+
+  const before = computeRangeStats(1, 7, settings, entries, dayNum);
+  const afterStart = Math.max(8, dayNum - 6);
+  const after = computeRangeStats(afterStart, dayNum, settings, entries, dayNum);
+
+  const noteEntries = findNoteEntries(entries);
+  const notesHtml = noteEntries
+    ? `<div class="ba-media-row">
+        <div class="ba-media-col">
+          <div class="ba-label">${noteEntries.first.date}</div>
+          <div class="ba-note">"${escapeHtml(noteEntries.first.note)}"</div>
+        </div>
+        <div class="ba-media-col">
+          <div class="ba-label">${noteEntries.last.date}</div>
+          <div class="ba-note">"${escapeHtml(noteEntries.last.note)}"</div>
+        </div>
+      </div>`
+    : '';
+
+  container.innerHTML = `
+    <div class="compare-grid">
+      <div class="compare-col">
+        <div class="compare-title">שבוע 1 (ההתחלה)</div>
+        ${compareMetricsHtml(before)}
+      </div>
+      <div class="compare-col">
+        <div class="compare-title">7 הימים האחרונים</div>
+        ${compareMetricsHtml(after)}
+      </div>
+    </div>
+    ${diffLineHtml(before, after)}
+    ${notesHtml}
+  `;
+
+  renderBeforeAfterMedia();
+}
+
 function renderProgress() {
   const settings = loadSettings();
   const start = new Date(settings.startDate + 'T00:00:00');
   const entries = loadEntries();
+  const dayNum = currentDayNumber();
 
   let fullDays = 0;
   let currentStreak = 0;
@@ -174,11 +346,10 @@ function renderProgress() {
   for (let day = 1; day <= 100; day++) {
     const d = new Date(start.getTime() + (day - 1) * 86400000);
     const key = dateKey(d);
-    // ריצה לא נדרשת בכל יום (היעד שבועי, לא ימים קבועים) - לא נכנסת לחישוב "יום מושלם"
-    const applicable = habitsForDate(d).filter((h) => h.id !== 'running');
     const entry = entries[key];
+    const isFull = isDayFull(d, entry);
+    const applicable = habitsForDate(d).filter((h) => h.id !== 'running');
     const doneCount = entry ? applicable.filter((h) => entry.checklist && entry.checklist[h.id]).length : 0;
-    const isFull = applicable.length > 0 && doneCount === applicable.length;
     const isPartial = doneCount > 0 && !isFull;
     const isFuture = d > today;
 
@@ -242,6 +413,10 @@ function renderProgress() {
     });
 
   drawMoodChart(el('#moodChart'), moodPoints);
+
+  renderMilestones(dayNum);
+  renderWeeklyCompare(dayNum, settings, entries);
+  renderBeforeAfter(dayNum, settings, entries);
 }
 
 function drawMoodChart(canvas, points) {
@@ -395,6 +570,7 @@ function setupWhyHandlers() {
       loadTodayDraftFromEntry();
       renderHeader();
       renderToday();
+      renderBanners();
     } catch (err) {
       console.error(err);
       status.textContent = 'קובץ גיבוי לא תקין';
@@ -403,19 +579,42 @@ function setupWhyHandlers() {
   });
 }
 
-// ---------------- Reminder banner ----------------
-function renderBanner() {
-  const banner = el('#banner');
+// ---------------- Reminder banners ----------------
+function renderBanners() {
+  const area = el('#bannerArea');
+  const messages = [];
+  const dayNum = currentDayNumber();
+
+  if (MILESTONES.includes(dayNum)) {
+    messages.push({
+      cls: 'celebrate',
+      text: dayNum === 100 ? 'סיימת את כל האתגר! 100 יום שלמים 🎉🎉🎉' : `הגעת ליום ${dayNum}! ציון דרך חדש 🎉`,
+    });
+  }
+
   const entry = getEntry(todayKey);
   const habitsToday = habitsForDate(today);
   const doneCount = habitsToday.filter((h) => entry.checklist && entry.checklist[h.id]).length;
-  const hour = today.getHours();
-  if (hour >= 20 && doneCount < habitsToday.length) {
-    banner.style.display = 'block';
-    banner.textContent = 'עדיין לא סימנת את כל היום - כמה דקות ותוכל לסגור אותו לפני השינה 💪';
-  } else {
-    banner.style.display = 'none';
+  if (today.getHours() >= 20 && doneCount < habitsToday.length) {
+    messages.push({ cls: '', text: 'עדיין לא סימנת את כל היום - כמה דקות ותוכל לסגור אותו לפני השינה 💪' });
   }
+
+  const entries = loadEntries();
+  const noteDates = Object.values(entries)
+    .filter((e) => e.note && e.note.trim())
+    .map((e) => e.date)
+    .sort();
+  if (noteDates.length) {
+    const lastNoteDate = new Date(noteDates[noteDates.length - 1] + 'T00:00:00');
+    const gapDays = Math.floor((today - lastNoteDate) / 86400000);
+    if (gapDays >= 2) {
+      messages.push({ cls: 'info', text: `לא כתבת ביומן כבר ${gapDays} ימים - אפילו שורה אחת עוזרת להסתכל אחורה בהמשך` });
+    }
+  } else if (dayNum >= 2) {
+    messages.push({ cls: 'info', text: 'עוד לא כתבת שום דבר ביומן - נסה להוסיף כמה מילים היום' });
+  }
+
+  area.innerHTML = messages.map((m) => `<div class="banner${m.cls ? ' ' + m.cls : ''}">${m.text}</div>`).join('');
 }
 
 // ---------------- Cloud wiring ----------------
@@ -459,7 +658,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderToday();
   setupTodayHandlers();
   setupWhyHandlers();
-  renderBanner();
+  renderBanners();
   setupCloud();
   registerServiceWorker();
 });

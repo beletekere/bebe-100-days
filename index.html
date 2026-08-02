@@ -19,7 +19,7 @@
 </header>
 
 <main>
-  <div id="banner" class="banner" style="display:none"></div>
+  <div id="bannerArea"></div>
 
   <!-- ===== Today ===== -->
   <section id="view-today" class="view active">
@@ -63,6 +63,16 @@
     </div>
 
     <div class="card">
+      <div class="section-title">🏅 ציוני דרך</div>
+      <div class="milestone-row" id="milestoneRow"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📊 השבוע מול השבוע שעבר</div>
+      <div id="weeklyCompare"></div>
+    </div>
+
+    <div class="card">
       <div class="section-title">לוח 100 הימים</div>
       <div class="calendar-grid" id="calendarGrid"></div>
     </div>
@@ -79,6 +89,11 @@
     <div class="card">
       <div class="section-title">מגמת מצב רוח</div>
       <canvas id="moodChart"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔄 לפני מול אחרי</div>
+      <div id="beforeAfter"></div>
     </div>
   </section>
 

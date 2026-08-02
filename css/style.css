@@ -467,6 +467,125 @@ canvas#moodChart {
   height: 120px;
 }
 
+/* ---------- Milestones ---------- */
+.milestone-row {
+  display: flex;
+  gap: 8px;
+}
+
+.milestone {
+  flex: 1;
+  text-align: center;
+  padding: 10px 4px;
+  border-radius: 14px;
+  background: var(--card-bg-soft);
+}
+
+.milestone.reached {
+  background: linear-gradient(120deg, #22c55e, #16a34a);
+  color: #fff;
+}
+
+.milestone.today {
+  outline: 2px solid var(--accent);
+}
+
+.milestone .num {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.milestone .lbl {
+  font-size: 0.65rem;
+  opacity: 0.85;
+}
+
+/* ---------- Weekly compare / before-after ---------- */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.compare-col {
+  background: var(--card-bg-soft);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.compare-col .compare-title {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.compare-metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.diff-line {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.diff-up {
+  color: var(--success);
+}
+
+.diff-down {
+  color: var(--danger);
+}
+
+.diff-same {
+  color: var(--text-muted);
+}
+
+.ba-media-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ba-media-col {
+  flex: 1;
+  text-align: center;
+}
+
+.ba-media-col .ba-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.ba-media-col img,
+.ba-media-col video {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #000;
+}
+
+.ba-note {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.empty-note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 6px 0;
+}
+
 /* ---------- History ---------- */
 .history-item {
   border-radius: 14px;
@@ -551,4 +670,12 @@ canvas#moodChart {
   margin-bottom: 12px;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.banner.celebrate {
+  background: linear-gradient(120deg, #22c55e, #7b2ff7);
+}
+
+.banner.info {
+  background: linear-gradient(120deg, #7b2ff7, #ff5e7e);
 }
