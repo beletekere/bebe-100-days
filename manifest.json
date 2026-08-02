@@ -1,0 +1,16 @@
+{
+  "name": "אתגר 100 הימים",
+  "short_name": "100 ימים",
+  "description": "מעקב יומי אחרי אלכוהול, עישון, ריצה, מתיחות ושינה במסגרת אתגר 100 הימים",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#7b2ff7",
+  "theme_color": "#7b2ff7",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

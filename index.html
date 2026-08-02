@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>אתגר 100 הימים</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#7b2ff7" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="app-header">
+  <h1>🔥 אתגר 100 הימים</h1>
+  <div class="day-badge" id="dayBadge">יום 1 מתוך 100</div>
+</header>
+
+<main>
+  <div id="banner" class="banner" style="display:none"></div>
+
+  <!-- ===== Today ===== -->
+  <section id="view-today" class="view active">
+    <div class="card quote-card" id="quoteCard"></div>
+
+    <div class="card">
+      <div class="section-title">איך היה היום?</div>
+      <div id="habitList"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">מצב רוח / אנרגיה</div>
+      <div class="mood-row" id="moodRow"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">יומן קצר</div>
+      <textarea id="noteInput" placeholder="איך הרגשת היום, בראש ובגוף?"></textarea>
+      <div class="media-row">
+        <button class="media-btn photo" id="photoBtn">📷 צלם תמונה</button>
+        <button class="media-btn video" id="videoBtn">🎥 צלם סרטון</button>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" hidden />
+      <input type="file" id="videoInput" accept="video/*" capture="environment" hidden />
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+
+    <button class="save-btn" id="saveBtn">שמור את היום</button>
+    <div class="save-flash" id="saveFlash"></div>
+  </section>
+
+  <!-- ===== Progress ===== -->
+  <section id="view-progress" class="view">
+    <div class="card">
+      <div class="section-title">התקדמות כללית</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="num" id="statFull">0</div><div class="lbl">ימים מושלמים</div></div>
+        <div class="stat-box"><div class="num" id="statStreak">0</div><div class="lbl">רצף נוכחי</div></div>
+        <div class="stat-box"><div class="num" id="statLongest">0</div><div class="lbl">רצף שיא</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">לוח 100 הימים</div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🏃 קצב ריצה (יום כן יום לא)</div>
+      <div class="stats-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="stat-box"><div class="num" id="statTotalRuns">0</div><div class="lbl">סה"כ ריצות</div></div>
+        <div class="stat-box"><div class="num" id="statRunGap">—</div><div class="lbl">מאז הריצה האחרונה</div></div>
+      </div>
+      <div class="run-list" id="runList" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">מגמת מצב רוח</div>
+      <canvas id="moodChart"></canvas>
+    </div>
+  </section>
+
+  <!-- ===== History ===== -->
+  <section id="view-history" class="view">
+    <div class="card">
+      <div class="section-title">כל הימים שתיעדת</div>
+      <div id="historyList"></div>
+    </div>
+  </section>
+
+  <!-- ===== Why ===== -->
+  <section id="view-why" class="view">
+    <div class="card">
+      <div class="section-title">💜 למה אני עושה את זה</div>
+      <textarea id="whyInput" class="why-text" rows="8"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="section-title">סנכרון בין מכשירים</div>
+      <div class="sync-status">
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncStatusText">בודק...</span>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-muted)">הקוד האישי שלך (הזן אותו גם במכשיר השני כדי לסנכרן):</p>
+      <div class="box-id-box" id="boxIdBox">לא הוגדר</div>
+      <div class="media-row">
+        <button class="btn-secondary" id="generateBoxBtn">צור קוד חדש</button>
+        <button class="btn-secondary" id="enterBoxBtn">הזן קוד קיים</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-view="today"><span class="tab-icon">✅</span>היום</button>
+  <button class="tab-btn" data-view="progress"><span class="tab-icon">📈</span>התקדמות</button>
+  <button class="tab-btn" data-view="history"><span class="tab-icon">📓</span>יומן</button>
+  <button class="tab-btn" data-view="why"><span class="tab-icon">💜</span>למה</button>
+</nav>
+
+<script defer src="js/habits.js"></script>
+<script defer src="js/quotes.js"></script>
+<script defer src="js/db.js"></script>
+<script defer src="js/store.js"></script>
+<script defer src="js/firebase-config.js"></script>
+<script type="module" src="js/cloud.js"></script>
+<script defer src="js/app.js"></script>
+</body>
+</html>
