@@ -156,10 +156,12 @@ function setupTodayHandlers() {
 }
 
 // ריצה לא נדרשת בכל יום (יעד "יום כן יום לא", לא ימים קבועים) - לא נכנסת לחישוב "יום מושלם"
-function isDayFull(date, entry) {
+function dayStatus(date, entry) {
   const applicable = habitsForDate(date).filter((h) => h.id !== 'running');
   const doneCount = entry ? applicable.filter((h) => entry.checklist && entry.checklist[h.id]).length : 0;
-  return applicable.length > 0 && doneCount === applicable.length;
+  if (applicable.length > 0 && doneCount === applicable.length) return 'full';
+  if (doneCount > 0) return 'partial';
+  return 'none';
 }
 
 // סטטיסטיקות על טווח ימי-אתגר (1-100), לצורך השוואות שבועיות ולפני/אחרי
@@ -176,7 +178,7 @@ function computeRangeStats(startDay, endDay, settings, entries, todayDayNum) {
   for (let day = clampedStart; day <= clampedEnd; day++) {
     const d = new Date(start.getTime() + (day - 1) * 86400000);
     const entry = entries[dateKey(d)];
-    if (isDayFull(d, entry)) fullDays++;
+    if (dayStatus(d, entry) === 'full') fullDays++;
     if (entry && entry.checklist && entry.checklist.running) runs++;
     if (entry && entry.mood) {
       moodSum += entry.mood;
@@ -317,10 +319,9 @@ function renderProgress() {
     const d = new Date(start.getTime() + (day - 1) * 86400000);
     const key = dateKey(d);
     const entry = entries[key];
-    const isFull = isDayFull(d, entry);
-    const applicable = habitsForDate(d).filter((h) => h.id !== 'running');
-    const doneCount = entry ? applicable.filter((h) => entry.checklist && entry.checklist[h.id]).length : 0;
-    const isPartial = doneCount > 0 && !isFull;
+    const status = dayStatus(d, entry);
+    const isFull = status === 'full';
+    const isPartial = status === 'partial';
     const isFuture = d > today;
 
     if (isFull) {
@@ -387,6 +388,35 @@ function renderProgress() {
   renderMilestones(dayNum);
   renderWeeklyCompare(dayNum, settings, entries);
   renderBeforeAfter(dayNum, settings, entries);
+  renderGallery(dayNum, settings, entries);
+}
+
+async function renderGallery(dayNum, settings, entries) {
+  const grid = el('#galleryGrid');
+  const start = new Date(settings.startDate + 'T00:00:00');
+  const days = [];
+  for (let day = 1; day <= dayNum; day++) {
+    const d = new Date(start.getTime() + (day - 1) * 86400000);
+    days.push({ day, date: d, key: dateKey(d) });
+  }
+
+  const mediaByDay = await Promise.all(days.map((d) => getMediaForDate(d.key)));
+
+  grid.innerHTML = '';
+  days.forEach((d, i) => {
+    const status = dayStatus(d.date, entries[d.key]);
+    const media = mediaByDay[i];
+    const cell = document.createElement('div');
+    cell.className = 'gallery-cell ' + status;
+    cell.title = d.key;
+    if (media.length) {
+      const url = URL.createObjectURL(media[0].blob);
+      cell.innerHTML = media[0].type === 'photo' ? `<img src="${url}">` : `<video src="${url}" muted></video>`;
+    } else {
+      cell.innerHTML = `<span class="gallery-day-num">${d.day}</span>`;
+    }
+    grid.appendChild(cell);
+  });
 }
 
 function drawMoodChart(canvas, points) {
