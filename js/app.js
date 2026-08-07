@@ -386,6 +386,10 @@ function renderProgress() {
       'cal-cell' + (c.isFull ? ' full' : c.isPartial ? ' partial' : '') + (c.isFuture ? ' future' : '') + (c.isToday ? ' today' : '');
     cell.textContent = c.day;
     cell.title = c.key;
+    if (!c.isFuture) {
+      cell.classList.add('clickable');
+      cell.addEventListener('click', () => startEditingDay(c.key));
+    }
     grid.appendChild(cell);
   });
 
@@ -509,15 +513,19 @@ async function renderHistory() {
   }
 }
 
+function startEditingDay(key) {
+  editingKey = key;
+  editingDate = new Date(key + 'T00:00:00');
+  loadTodayDraftFromEntry();
+  renderToday();
+  switchView('today');
+}
+
 function setupHistoryHandlers() {
   el('#historyList').addEventListener('click', (e) => {
     const btn = e.target.closest('.edit-day-btn');
     if (!btn) return;
-    editingKey = btn.dataset.editKey;
-    editingDate = new Date(editingKey + 'T00:00:00');
-    loadTodayDraftFromEntry();
-    renderToday();
-    switchView('today');
+    startEditingDay(btn.dataset.editKey);
   });
 }
 

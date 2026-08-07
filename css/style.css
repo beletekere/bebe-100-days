@@ -437,6 +437,14 @@ textarea {
   opacity: 0.4;
 }
 
+.cal-cell.clickable {
+  cursor: pointer;
+}
+
+.cal-cell.clickable:active {
+  transform: scale(0.92);
+}
+
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
