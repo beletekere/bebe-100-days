@@ -1,6 +1,5 @@
 // הגדרת ההרגלים של האתגר
 const HABITS = [
-  { id: 'no_alcohol', label: 'בלי אלכוהול', icon: '🚫🍺', days: null },
   { id: 'no_smoking', label: 'בלי עישון (מכל סוג)', icon: '🚭', days: null },
   { id: 'running', label: 'ריצה (יעד: יום כן יום לא)', icon: '🏃', days: null }, // כל יום פתוח לסימון, הקצב הרצוי הוא כל יומיים
   { id: 'stretching', label: 'תרגילי שחרור גוף', icon: '🧘', days: null },
