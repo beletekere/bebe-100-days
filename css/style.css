@@ -631,6 +631,12 @@ canvas#moodChart {
   margin-bottom: 4px;
 }
 
+.history-item .edit-day-btn {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  padding: 8px 12px;
+}
+
 .history-item .chips {
   display: flex;
   gap: 4px;
@@ -744,4 +750,18 @@ canvas#moodChart {
 
 .banner.info {
   background: linear-gradient(120deg, #7b2ff7, #ff5e7e);
+}
+
+.editing-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.editing-banner .btn-secondary {
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 0.8rem;
 }

@@ -6,7 +6,9 @@ let today = new Date();
 let todayKey = dateKey(today);
 let currentMedia = []; // media rows for today, loaded from IndexedDB
 let draftChecklist = {};
-let draftRunning = { location: '', distanceKm: '' };
+let draftRunning = { location: '', minutes: '' };
+let editingDate = new Date(today);
+let editingKey = todayKey;
 let draftMood = null;
 
 function el(sel, root = document) {
@@ -35,14 +37,18 @@ function renderHeader() {
 }
 
 function loadTodayDraftFromEntry() {
-  const entry = getEntry(todayKey);
+  const entry = getEntry(editingKey);
   draftChecklist = { ...entry.checklist };
-  draftRunning = entry.running ? { ...entry.running } : { location: '', distanceKm: '' };
+  draftRunning = entry.running ? { ...entry.running } : { location: '', minutes: '' };
   draftMood = entry.mood;
 }
 
 async function renderToday() {
-  const habitsToday = habitsForDate(today);
+  const isEditingPast = editingKey !== todayKey;
+  el('#editingBanner').style.display = isEditingPast ? 'flex' : 'none';
+  el('#editingDateLabel').textContent = editingKey;
+
+  const habitsToday = habitsForDate(editingDate);
   const wrap = el('#habitList');
   wrap.innerHTML = '';
 
@@ -65,12 +71,12 @@ async function renderToday() {
           <input type="text" id="runLocation" placeholder="לדוגמה: הפארק" value="${draftRunning.location || ''}">
         </div>
         <div>
-          <label class="small-label">כמה ק"מ?</label>
-          <input type="number" id="runDistance" placeholder="5" min="0" step="0.1" value="${draftRunning.distanceKm || ''}">
+          <label class="small-label">כמה דקות?</label>
+          <input type="number" id="runMinutes" placeholder="30" min="0" step="1" value="${draftRunning.minutes || ''}">
         </div>`;
       wrap.appendChild(details);
       el('#runLocation', details).addEventListener('input', (e) => (draftRunning.location = e.target.value));
-      el('#runDistance', details).addEventListener('input', (e) => (draftRunning.distanceKm = e.target.value));
+      el('#runMinutes', details).addEventListener('input', (e) => (draftRunning.minutes = e.target.value));
     }
   });
 
@@ -89,7 +95,7 @@ async function renderToday() {
   });
 
   // media thumbs
-  currentMedia = await getMediaForDate(todayKey);
+  currentMedia = await getMediaForDate(editingKey);
   renderThumbs();
 
   el('#saveFlash').textContent = '';
@@ -110,7 +116,7 @@ function renderThumbs() {
     del.addEventListener('click', async (e) => {
       e.stopPropagation();
       await deleteMedia(m.id);
-      currentMedia = await getMediaForDate(todayKey);
+      currentMedia = await getMediaForDate(editingKey);
       renderThumbs();
     });
     div.appendChild(del);
@@ -122,8 +128,8 @@ function setupTodayHandlers() {
   el('#photoInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await addMedia(todayKey, 'photo', file);
-    currentMedia = await getMediaForDate(todayKey);
+    await addMedia(editingKey, 'photo', file);
+    currentMedia = await getMediaForDate(editingKey);
     renderThumbs();
     e.target.value = '';
   });
@@ -131,8 +137,8 @@ function setupTodayHandlers() {
   el('#videoInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await addMedia(todayKey, 'video', file);
-    currentMedia = await getMediaForDate(todayKey);
+    await addMedia(editingKey, 'video', file);
+    currentMedia = await getMediaForDate(editingKey);
     renderThumbs();
     e.target.value = '';
   });
@@ -140,18 +146,32 @@ function setupTodayHandlers() {
   el('#photoBtn').addEventListener('click', () => el('#photoInput').click());
   el('#videoBtn').addEventListener('click', () => el('#videoInput').click());
 
+  el('#backToTodayBtn').addEventListener('click', () => {
+    editingDate = new Date(today);
+    editingKey = todayKey;
+    loadTodayDraftFromEntry();
+    renderToday();
+  });
+
   el('#saveBtn').addEventListener('click', () => {
+    const wasEditingPast = editingKey !== todayKey;
     const running = draftChecklist.running
-      ? { location: draftRunning.location || '', distanceKm: draftRunning.distanceKm ? Number(draftRunning.distanceKm) : 0 }
+      ? { location: draftRunning.location || '', minutes: draftRunning.minutes ? Number(draftRunning.minutes) : 0 }
       : null;
     saveEntry({
-      date: todayKey,
+      date: editingKey,
       checklist: draftChecklist,
       running,
       mood: draftMood,
     });
     el('#saveFlash').textContent = 'נשמר! 💪';
     renderBanners();
+    if (wasEditingPast) {
+      editingDate = new Date(today);
+      editingKey = todayKey;
+      loadTodayDraftFromEntry();
+      switchView('history');
+    }
   });
 }
 
@@ -379,7 +399,7 @@ function renderProgress() {
     .forEach((r) => {
       const item = document.createElement('div');
       item.className = 'run-item';
-      item.innerHTML = `<span class="date">${r.date}</span><span class="meta">${r.location || '—'} · ${r.distanceKm || 0} ק"מ</span>`;
+      item.innerHTML = `<span class="date">${r.date}</span><span class="meta">${r.location || '—'} · ${r.minutes || 0} דקות</span>`;
       runList.appendChild(item);
     });
 
@@ -483,9 +503,22 @@ async function renderHistory() {
       <div class="chips">${chips}</div>
       ${entry.mood ? `<div>${MOODS[entry.mood - 1]}</div>` : ''}
       ${thumbsHtml ? `<div class="thumbs">${thumbsHtml}</div>` : ''}
+      <button class="btn-secondary edit-day-btn" data-edit-key="${key}">✏️ ערוך יום זה</button>
     `;
     list.appendChild(div);
   }
+}
+
+function setupHistoryHandlers() {
+  el('#historyList').addEventListener('click', (e) => {
+    const btn = e.target.closest('.edit-day-btn');
+    if (!btn) return;
+    editingKey = btn.dataset.editKey;
+    editingDate = new Date(editingKey + 'T00:00:00');
+    loadTodayDraftFromEntry();
+    renderToday();
+    switchView('today');
+  });
 }
 
 // ---------------- Settings (sync + backup) ----------------
@@ -587,7 +620,7 @@ function setupCloud() {
       const changed = mergeCloudEntry(remote);
       if (changed) {
         const activeView = el('.tab-btn.active')?.dataset.view;
-        if (remote.date === todayKey && activeView === 'today') {
+        if (remote.date === editingKey && activeView === 'today') {
           loadTodayDraftFromEntry();
           renderToday();
         }
@@ -650,6 +683,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderToday();
   setupTodayHandlers();
   setupWhyHandlers();
+  setupHistoryHandlers();
   setupLightbox();
   renderBanners();
   setupCloud();
